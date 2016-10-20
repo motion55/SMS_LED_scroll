@@ -652,7 +652,7 @@ const char font7x5_kern[] PROGMEM = {
 	6,6,6,4,2,4,6,5,
 };
 
-const int font7x5_offset[] = {
+const int font7x5_offset[] PROGMEM = {
 	0,  6,  8, 12, 18, 24, 30, 36,
 	39, 43, 47, 53, 59, 62, 68, 71,
 	77, 83, 89, 95,101,107,113,119,
@@ -691,7 +691,12 @@ private:
 	int LoadPos;
 	int ScrollPos;
 
-	String ColumnBuffer;
+#ifdef _USE_STRING_CB_
+  String ColumnBuffer;
+#else  
+  static const int ColumnBufferLen = 256;
+  unsigned char ColumnBuffer[ColumnBufferLen];
+#endif
 
 	void spiTransfer(int maxbytes, byte *spidata) 
 	{
@@ -835,9 +840,14 @@ public:
 
 			for (int i = 0; i < kern; i++)
 			{
-				unsigned char dat = pgm_read_byte_near(font7x5 + offset);
+#ifdef _USE_STRING_CB_
+        unsigned char dat = pgm_read_byte_near(font7x5 + offset);
 				ColumnBuffer += dat;
-				offset++;
+#else
+        if (LoadPos >= ColumnBufferLen) return i;
+        ColumnBuffer[LoadPos++] = pgm_read_byte_near(font7x5 + offset);
+#endif
+        offset++;
 			}
 		}
 		return kern;
@@ -845,13 +855,21 @@ public:
 
 	void ResetColumnBuffer()
 	{
-		ColumnBuffer = String();
+#ifdef _USE_STRING_CB_
+    ColumnBuffer = String();
+#else    
+    for (int col = 0; col < ColumnBufferLen; col++)
+    {
+      ColumnBuffer[col] = 0;
+    }
+#endif    
 		LoadPos = 0;
 	}
 
 	int LoadMessage(unsigned char * message)
 	{
 		ResetColumnBuffer();
+    Serial.print(F("LoadMessage:"));
 		for (int counter = 0; ; counter++)
 		{
 			// read back a char 
@@ -859,11 +877,19 @@ public:
 			if (myChar != 0)
 			{
 				LoadColumnBuffer(myChar);
+        Serial.write(myChar);
 			}
 			else break;
 		}
+    Serial.println();
 		return LoadPos;
 	}
+
+  int LoadMessage(const __FlashStringHelper *message)
+  {
+    String mess(message);
+    return LoadMessage(mess.c_str());
+  }
 
 	void ResetScrollPos(void)
 	{
@@ -872,7 +898,11 @@ public:
 
 	int LoadDisplayBuffer()
 	{
+#ifdef _USE_STRING_CB_
 		int BufferLen = ColumnBuffer.length();
+#else
+    int BufferLen = LoadPos;
+#endif    
 		if (ScrollPos >= BufferLen) ScrollPos = 0;
 
 		unsigned char mask = 0x01;
@@ -890,7 +920,11 @@ public:
 				{
 					dat <<= 1;
 					if (Pos >= BufferLen) Pos = 0;
+#ifdef _USE_STRING_CB_
 					if (mask & ColumnBuffer.charAt(Pos++))
+#else
+          if (mask & ColumnBuffer[Pos++])
+#endif          
 					{
 						dat += 1;
 					}
@@ -914,12 +948,12 @@ const int ledPin = 13;      // the number of the LED pin
 int ledState = LOW;             // ledState used to set the LED
 
 unsigned long previousMillis = 0;
-const long interval = 50;
+const long interval = 100;
 
 void MAX7219_setup()
 {
 	lc.Init();
-	lc.LoadMessage("Hello World!");
+	lc.LoadMessage(F("ABCDEFGHIJKLMNOP"));
 	pinMode(ledPin, OUTPUT);
 }
 

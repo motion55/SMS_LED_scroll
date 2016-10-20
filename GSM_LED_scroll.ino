@@ -21,12 +21,12 @@ void MAX7219_loop();
 
 void setup()
 {
-	MAX7219_setup();
-	
 	//Serial connection.
 	Serial.begin(115200);
 	Serial.println(F("GSM Shield testing."));
 
+  MAX7219_setup();
+  
 	//Configure Comm Port to select Hardware or Software serial
 #if defined(__AVR_ATmega328P__)
 	gsm.SelectSoftwareSerial(RX_pin, TX_pin, GSM_ON_pin);
