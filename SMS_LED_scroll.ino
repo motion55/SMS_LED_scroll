@@ -10,11 +10,11 @@ SMSGSM sms;
 int numdata;
 boolean started=false;
 char smsbuffer[160] = "Arduino SMS";
-char n[20] = "09297895641";	//Replace with your cell number.
+char n[20] = "09291234567";	//Replace with your cell number.
 
 const int RX_pin = 2;
 const int TX_pin = 3;
-const int GSM_ON_pin = 7;
+const int GSM_ON_pin = A5;
 
 void MAX7219_setup();
 void MAX7219_loop();
