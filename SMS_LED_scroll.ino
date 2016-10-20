@@ -1,8 +1,8 @@
 
-#include "SIMCOM.h"
+#include "src/GSM/SIMCOM.h"
 
 //If you want to use the Arduino functions to manage SMS, uncomment the lines below.
-#include "sms.h"
+#include "src/GSM/sms.h"
 SMSGSM sms;
 
 //Simple sketch to send and receive SMS.
