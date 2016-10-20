@@ -6,157 +6,9 @@
 #endif
 
 const int numDevices = 4;      // number of MAX7219s used
-const int SPI_MOSI = 13;
-const int SPI_CLK = 14;
-const int SPI_CS = 16;
-
-/*////////////////////////////////////////////////////////////////////////////////*/
-
-#define OP_NOOP   0
-#define OP_DIGIT0 1
-#define OP_DIGIT1 2
-#define OP_DIGIT2 3
-#define OP_DIGIT3 4
-#define OP_DIGIT4 5
-#define OP_DIGIT5 6
-#define OP_DIGIT6 7
-#define OP_DIGIT7 8
-#define OP_DECODEMODE  9
-#define OP_INTENSITY   10
-#define OP_SCANLIMIT   11
-#define OP_SHUTDOWN    12
-#define OP_DISPLAYTEST 15
-
-class MAX7219Control {
-private:
-	int _numDevices;
-	int LoadPos = 0;
-	String ColumnBuffer;
-	
-	void spiTransfer(int maxbytes, byte *spidata) {
-		//enable the line 
-		digitalWrite(SPI_CS, LOW);
-		//Now shift out the data 
-		for (int i = maxbytes; i > 0; i--)
-		{
-			shiftOut(SPI_MOSI, SPI_CLK, MSBFIRST, spidata[i - 1]);
-			delay(0);
-		}
-		//latch the data onto the display
-		digitalWrite(SPI_CS, HIGH);
-	}
-
-	void spiTransfer(int addr, volatile byte opcode, volatile byte data) {
-		//Create an array with the data to shift out
-		byte spidata[16];
-		/* The array for shifting the data to the devices */
-		int offset = addr * 2;
-		int maxbytes = maxDevices * 2;
-
-		for (int i = 0; i<maxbytes; i++)
-			spidata[i] = (byte)0;
-		//put our device data into the array
-		spidata[offset + 1] = opcode;
-		spidata[offset] = data;
-
-		spiTransfer(maxbytes, spidata);
-	}
-
-	/* Data is shifted out of this pin*/
-	int SPI_MOSI;
-	/* The clock is signaled on this pin */
-	int SPI_CLK;
-	/* This one is driven LOW for chip selection */
-	int SPI_CS;
-	/* The maximum number of devices we use */
-	int maxDevices;
-public:
-	MAX7219Control(int dataPin, int clkPin, int csPin, int numDevices) {
-		SPI_MOSI = dataPin;
-		SPI_CLK = clkPin;
-		SPI_CS = csPin;
-		if (numDevices <= 0 || numDevices > 8)
-			numDevices = 8;
-		maxDevices = numDevices;
-		pinMode(SPI_MOSI, OUTPUT);
-		pinMode(SPI_CLK, OUTPUT);
-		pinMode(SPI_CS, OUTPUT);
-		digitalWrite(SPI_CS, HIGH);
-		pinMode(10, OUTPUT);
-		digitalWrite(10, HIGH); //To enusre SS pin is HIGH
-		SPI_MOSI = dataPin;
-		for (int i = 0; i < maxDevices; i++) {
-			spiTransfer(i, OP_DISPLAYTEST, 0);
-			//scanlimit is set to max on startup
-			setScanLimit(i, 7);
-			//decode is done in source
-			spiTransfer(i, OP_DECODEMODE, 0);
-			clearDisplay(i);
-			//we go into shutdown-mode on startup
-			shutdown(i, true);
-		}
-	}
-
-	void shutdown(int addr, bool b) {
-		if (addr<0 || addr >= maxDevices)
-			return;
-		if (b)
-			spiTransfer(addr, OP_SHUTDOWN, 0);
-		else
-			spiTransfer(addr, OP_SHUTDOWN, 1);
-	}
-
-	void setScanLimit(int addr, int limit) {
-		if (addr<0 || addr >= maxDevices)
-			return;
-		if (limit >= 0 && limit<8)
-			spiTransfer(addr, OP_SCANLIMIT, limit);
-	}
-
-	void setIntensity(int addr, int intensity) {
-		if (addr<0 || addr >= maxDevices)
-			return;
-		if (intensity >= 0 && intensity<16)
-			spiTransfer(addr, OP_INTENSITY, intensity);
-	}
-
-	void clearDisplay(int addr) {
-		if (addr<0 || addr >= maxDevices)
-			return;
-		for (int i = 0; i<8; i++) {
-			spiTransfer(addr, i + 1, 0);
-		}
-	}
-
-	void setRow(int row, byte *RowData) {
-		if (row < 0 || row>7)
-			return;
-		byte spidata[16];
-		/* The array for shifting the data to the devices */
-
-		//put our device data into the array
-		for (int addr = 0; addr < maxDevices; addr++)
-		{
-			int offset = addr * 2;
-			spidata[offset + 1] = row + 1;
-			spidata[offset] = RowData[addr];
-		}
-
-		int maxbytes = maxDevices * 2;
-		spiTransfer(maxbytes, spidata);
-	}
- 
-	void Init(int numDevices)
-	{
-		_numDevices = numDevices;
-		for (int x = 0; x<_numDevices; x++)
-		{
-			shutdown(x, false);       //The MAX72XX is in power-saving mode on startup
-			setIntensity(x, 0);       // Set the brightness to minimum value
-			clearDisplay(x);         // and clear the display
-		}
-	}
-};
+const int SPI_MOSI = 10;
+const int SPI_CLK = 12;
+const int SPI_CS = 11;
 
 /*////////////////////////////////////////////////////////////////////////////////*/
 
@@ -815,98 +667,285 @@ const int font7x5_offset[] = {
 	487,493,499,505,509,511,515,521,
 };
 
-MAX7219Control lc = MAX7219Control(SPI_MOSI, SPI_CLK, SPI_CS, numDevices);
+/*////////////////////////////////////////////////////////////////////////////////*/
 
-void ResetColumnBuffer()
-{
-	for (int col = 0; col < ColumnBufferLen; col++)
+#define OP_NOOP   0
+#define OP_DIGIT0 1
+#define OP_DIGIT1 2
+#define OP_DIGIT2 3
+#define OP_DIGIT3 4
+#define OP_DIGIT4 5
+#define OP_DIGIT5 6
+#define OP_DIGIT6 7
+#define OP_DIGIT7 8
+#define OP_DECODEMODE  9
+#define OP_INTENSITY   10
+#define OP_SCANLIMIT   11
+#define OP_SHUTDOWN    12
+#define OP_DISPLAYTEST 15
+
+/*////////////////////////////////////////////////////////////////////////////////*/
+
+class MAX7219Control {
+private:
+	int LoadPos;
+	int ScrollPos;
+
+	String ColumnBuffer;
+
+	void spiTransfer(int maxbytes, byte *spidata) 
 	{
-		ColumnBuffer[col] = 0;
-	}
-	LoadPos = 0;
-}
-
-char LoadColumnBuffer(char ascii)
-{
-	char kern = 0;
-	if (ascii >= 0x20 && ascii <= 0x7f)
-	{
-		kern = pgm_read_byte_near(font7x5_kern + (ascii - 0x20));
-#if defined(ESP8266)
-		int offset = font7x5_offset[ascii - 0x20];
-#else
-		int offset = pgm_read_word_near(font7x5_offset + (ascii-0x20));
-#endif
-
-#if defined(ESP8266)
-		memcpy_P(&ColumnBuffer[LoadPos], font7x5 + offset, kern);
-#else
-		for (int i = 0; i < kern; i++)
+		//enable the line 
+		digitalWrite(_SPI_CS, LOW);
+		//Now shift out the data 
+		for (int i = maxbytes; i > 0; i--)
 		{
-			if (LoadPos >= ColumnBufferLen) return i;
-			ColumnBuffer[LoadPos] = pgm_read_byte_near(font7x5 + offset);
-			offset++;
+			shiftOut(_SPI_MOSI, _SPI_CLK, MSBFIRST, spidata[i - 1]);
 		}
-#endif
-		LoadPos += kern;
+		//latch the data onto the display
+		digitalWrite(_SPI_CS, HIGH);
 	}
-	return kern;
-}
 
-int LoadMessage(unsigned char * message)
-{
-	ResetColumnBuffer();
-	for (int counter = 0; ; counter++)
+	void spiTransfer(int addr, volatile byte opcode, volatile byte data) 
 	{
-		// read back a char 
-		unsigned char myChar = message[counter];
-		if (myChar != 0)
+		//Create an array with the data to shift out
+		byte spidata[16];
+		/* The array for shifting the data to the devices */
+		int offset = addr * 2;
+		int maxbytes = maxDevices * 2;
+
+		for (int i = 0; i<maxbytes; i++)
+			spidata[i] = (byte)0;
+		//put our device data into the array
+		spidata[offset + 1] = opcode;
+		spidata[offset] = data;
+
+		spiTransfer(maxbytes, spidata);
+	}
+
+	/* Data is shifted out of this pin*/
+	int _SPI_MOSI;
+	/* The clock is signaled on this pin */
+	int _SPI_CLK;
+	/* This one is driven LOW for chip selection */
+	int _SPI_CS;
+	/* The maximum number of devices we use */
+	int maxDevices;
+public:
+	MAX7219Control(int dataPin, int clkPin, int csPin, int numDevices) 
+	{
+		_SPI_MOSI = dataPin;
+		_SPI_CLK = clkPin;
+		_SPI_CS = csPin;
+		if (numDevices <= 0 || numDevices > 8)
+			numDevices = 8;
+		maxDevices = numDevices;
+		pinMode(_SPI_MOSI, OUTPUT);
+		pinMode(_SPI_CLK, OUTPUT);
+		pinMode(_SPI_CS, OUTPUT);
+		digitalWrite(_SPI_CS, HIGH);
+		pinMode(10, OUTPUT);
+		digitalWrite(10, HIGH); //To enusre SS pin is HIGH
+		for (int i = 0; i < maxDevices; i++) 
 		{
-			LoadColumnBuffer(myChar);
+			spiTransfer(i, OP_DISPLAYTEST, 0);
+			//scanlimit is set to max on startup
+			setScanLimit(i, 7);
+			//decode is done in source
+			spiTransfer(i, OP_DECODEMODE, 0);
+			clearDisplay(i);
+			//we go into shutdown-mode on startup
+			shutdown(i, true);
 		}
-		else break;
+		LoadPos = 0;
+		ScrollPos = 0;
 	}
-	return LoadPos;
-}
 
-int ScrollPos;
-
-void ResetScrollPos(void)
-{
-	ScrollPos = 0;
-}
-
-int LoadDisplayBuffer(int BufferLen)
-{
-	if (ScrollPos >= BufferLen) ScrollPos = 0;
-
-	unsigned char mask = 0x01;
-
-	for (int row = 0; row < 8; row++)
+	void shutdown(int addr, bool b) 
 	{
-		unsigned char RowBuffer[numDevices];
-		int Pos = ScrollPos;
-		unsigned char dat = 0;
+		if (addr<0 || addr >= maxDevices)
+			return;
+		if (b)
+			spiTransfer(addr, OP_SHUTDOWN, 0);
+		else
+			spiTransfer(addr, OP_SHUTDOWN, 1);
+	}
 
-		for (int device = numDevices - 1; device >= 0; device--)
+	void setScanLimit(int addr, int limit) 
+	{
+		if (addr<0 || addr >= maxDevices)
+			return;
+		if (limit >= 0 && limit<8)
+			spiTransfer(addr, OP_SCANLIMIT, limit);
+	}
+
+	void setIntensity(int addr, int intensity) 
+	{
+		if (addr<0 || addr >= maxDevices)
+			return;
+		if (intensity >= 0 && intensity<16)
+			spiTransfer(addr, OP_INTENSITY, intensity);
+	}
+
+	void clearDisplay(int addr) 
+	{
+		if (addr<0 || addr >= maxDevices)
+			return;
+		for (int i = 0; i<8; i++) {
+			spiTransfer(addr, i + 1, 0);
+		}
+	}
+
+	void setRow(int row, byte *RowData) 
+	{
+		if (row < 0 || row>7)
+			return;
+		byte spidata[16];
+		/* The array for shifting the data to the devices */
+
+		//put our device data into the array
+		for (int addr = 0; addr < maxDevices; addr++)
 		{
-			unsigned char dat = 0;
-			for (int col = 0; col < 8; col++)
+			int offset = addr * 2;
+			spidata[offset + 1] = row + 1;
+			spidata[offset] = RowData[addr];
+		}
+
+		int maxbytes = maxDevices * 2;
+		spiTransfer(maxbytes, spidata);
+	}
+
+	void Init()
+	{
+		for (int x = 0; x<maxDevices; x++)
+		{
+			shutdown(x, false);       //The MAX72XX is in power-saving mode on startup
+			setIntensity(x, 0);       // Set the brightness to minimum value
+			clearDisplay(x);         // and clear the display
+		}
+	}
+
+	char LoadColumnBuffer(char ascii)
+	{
+		char kern = 0;
+		if (ascii >= 0x20 && ascii <= 0x7f)
+		{
+			kern = pgm_read_byte_near(font7x5_kern + (ascii - 0x20));
+			int offset = pgm_read_word_near(font7x5_offset + (ascii - 0x20));
+
+			for (int i = 0; i < kern; i++)
 			{
-				dat <<= 1;
-				if (Pos >= BufferLen) Pos = 0;
-				if (mask & ColumnBuffer[Pos++])
-				{
-					dat += 1;
-				}
-				RowBuffer[device] = dat;
+				unsigned char dat = pgm_read_byte_near(font7x5 + offset);
+				ColumnBuffer += dat;
+				offset++;
 			}
 		}
-		mask <<= 1;
-		lc.setRow(row, RowBuffer);
+		return kern;
 	}
-	ScrollPos++;
 
-	return ScrollPos;
+	void ResetColumnBuffer()
+	{
+		ColumnBuffer = String();
+		LoadPos = 0;
+	}
+
+	int LoadMessage(unsigned char * message)
+	{
+		ResetColumnBuffer();
+		for (int counter = 0; ; counter++)
+		{
+			// read back a char 
+			unsigned char myChar = message[counter];
+			if (myChar != 0)
+			{
+				LoadColumnBuffer(myChar);
+			}
+			else break;
+		}
+		return LoadPos;
+	}
+
+	void ResetScrollPos(void)
+	{
+		ScrollPos = 0;
+	}
+
+	int LoadDisplayBuffer()
+	{
+		int BufferLen = ColumnBuffer.length();
+		if (ScrollPos >= BufferLen) ScrollPos = 0;
+
+		unsigned char mask = 0x01;
+
+		for (int row = 0; row < 8; row++)
+		{
+			byte RowBuffer[numDevices];
+			int Pos = ScrollPos;
+			unsigned char dat = 0;
+
+			for (int device = numDevices - 1; device >= 0; device--)
+			{
+				unsigned char dat = 0;
+				for (int col = 0; col < 8; col++)
+				{
+					dat <<= 1;
+					if (Pos >= BufferLen) Pos = 0;
+					if (mask & ColumnBuffer.charAt(Pos++))
+					{
+						dat += 1;
+					}
+					RowBuffer[device] = dat;
+				}
+			}
+			mask <<= 1;
+			setRow(row, RowBuffer);
+		}
+		ScrollPos++;
+
+		return ScrollPos;
+	}
+};
+
+/*////////////////////////////////////////////////////////////////////////////////*/
+
+MAX7219Control lc(SPI_MOSI, SPI_CLK, SPI_CS, numDevices);
+
+const int ledPin = 13;      // the number of the LED pin
+int ledState = LOW;             // ledState used to set the LED
+
+unsigned long previousMillis = 0;
+const long interval = 50;
+
+void MAX7219_setup()
+{
+	lc.Init();
+	lc.LoadMessage("Hello World!");
+	pinMode(ledPin, OUTPUT);
 }
+
+void MAX7219_loop()
+{
+	unsigned long currentMillis = millis();
+
+	if (currentMillis - previousMillis >= interval) 
+	{
+		// save the last time you blinked the LED
+		previousMillis = currentMillis;
+
+		// if the LED is off turn it on and vice-versa:
+		if (ledState == LOW) {
+			ledState = HIGH;
+		}
+		else {
+			ledState = LOW;
+		}
+
+		// set the LED with the ledState of the variable:
+		digitalWrite(ledPin, ledState);
+
+		lc.LoadDisplayBuffer();
+	}
+}
+
+
 

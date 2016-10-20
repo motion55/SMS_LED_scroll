@@ -16,9 +16,12 @@ const int RX_pin = 2;
 const int TX_pin = 3;
 const int GSM_ON_pin = 7;
 
+void MAX7219_setup();
+void MAX7219_loop();
+
 void setup()
 {
-	InitMax7219();
+	MAX7219_setup();
 	
 	//Serial connection.
 	Serial.begin(115200);
@@ -86,11 +89,8 @@ void loop()
 };
 
 static boolean _entered_yield = false;
-void LED_scroll1(void)
-{
-}
 
-void (*LED_scroll)(void) = LED_scroll1;
+void (*LED_scroll)(void) = MAX7219_loop;
 
 void yield(void)
 {
