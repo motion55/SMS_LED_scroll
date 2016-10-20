@@ -1,4 +1,6 @@
 
+#include <Arduino.h>
+
 #if defined(ESP8266)
 #include <pgmspace.h>
 #else
@@ -691,11 +693,14 @@ private:
 	int LoadPos;
 	int ScrollPos;
 
+#define _USE_STRING_CB_
+
 #ifdef _USE_STRING_CB_
-  String ColumnBuffer;
+	int ColumnBufferLen;
+	unsigned char *ColumnBuffer;
 #else  
-  static const int ColumnBufferLen = 256;
-  unsigned char ColumnBuffer[ColumnBufferLen];
+	static const int ColumnBufferLen = 256;
+	unsigned char ColumnBuffer[ColumnBufferLen];
 #endif
 
 	void spiTransfer(int maxbytes, byte *spidata) 
@@ -762,6 +767,10 @@ public:
 			//we go into shutdown-mode on startup
 			shutdown(i, true);
 		}
+#ifdef _USE_STRING_CB_
+		ColumnBuffer = NULL;
+		ColumnBufferLen = 0;
+#endif
 		LoadPos = 0;
 		ScrollPos = 0;
 	}
@@ -840,14 +849,9 @@ public:
 
 			for (int i = 0; i < kern; i++)
 			{
-#ifdef _USE_STRING_CB_
-        unsigned char dat = pgm_read_byte_near(font7x5 + offset);
-				ColumnBuffer += dat;
-#else
-        if (LoadPos >= ColumnBufferLen) return i;
-        ColumnBuffer[LoadPos++] = pgm_read_byte_near(font7x5 + offset);
-#endif
-        offset++;
+				if (LoadPos >= ColumnBufferLen) return i;
+				ColumnBuffer[LoadPos++] = pgm_read_byte_near(font7x5 + offset);
+				offset++;
 			}
 		}
 		return kern;
@@ -856,40 +860,78 @@ public:
 	void ResetColumnBuffer()
 	{
 #ifdef _USE_STRING_CB_
-    ColumnBuffer = String();
-#else    
-    for (int col = 0; col < ColumnBufferLen; col++)
-    {
-      ColumnBuffer[col] = 0;
-    }
-#endif    
+		if (ColumnBuffer) free(ColumnBuffer);
+		ColumnBuffer = NULL;
+		ColumnBufferLen = LoadPos = 0;
+#else
+		for (int col = 0; col < ColumnBufferLen; col++)
+		{
+			ColumnBuffer[col] = 0;
+		}
 		LoadPos = 0;
+#endif
 	}
 
-	int LoadMessage(unsigned char * message)
+#ifdef _USE_STRING_CB_
+	unsigned char ResizeColumnBuffer(unsigned int BufferLen)
 	{
-		ResetColumnBuffer();
-    Serial.print(F("LoadMessage:"));
+		unsigned char *newBuffer = (unsigned char *)realloc(ColumnBuffer, BufferLen);
+		if (newBuffer)
+		{
+			ColumnBuffer = newBuffer;
+			ColumnBufferLen = BufferLen;
+			return 1;
+		}
+		return 0;
+	}
+
+	int CheckMessage(unsigned char * message)
+	{
+		int EndPos = LoadPos;
 		for (int counter = 0; ; counter++)
 		{
-			// read back a char 
+			unsigned char ascii = message[counter];
+			if (ascii!=0)
+			{
+				if (ascii >= 0x20 && ascii <= 0x7f)
+				{
+					char kern = pgm_read_byte_near(font7x5_kern + (ascii - 0x20));
+					EndPos += kern;
+				}
+			}
+			else break;
+		}
+		return EndPos;
+	}
+#endif
+
+	int LoadMessage(unsigned char *message)
+	{
+		ResetColumnBuffer();
+#ifdef _USE_STRING_CB_
+		int EndPos = CheckMessage(message);
+		if (EndPos > ColumnBufferLen)
+		{
+			if (!ResizeColumnBuffer(EndPos)) return LoadPos;
+		}
+#endif
+		for (int counter = 0; ; counter++)
+		{
 			unsigned char myChar = message[counter];
 			if (myChar != 0)
 			{
 				LoadColumnBuffer(myChar);
-        Serial.write(myChar);
 			}
 			else break;
 		}
-    Serial.println();
 		return LoadPos;
 	}
 
-  int LoadMessage(const __FlashStringHelper *message)
-  {
-    String mess(message);
-    return LoadMessage(mess.c_str());
-  }
+	int LoadMessage(const __FlashStringHelper *message)
+	{
+		String mess(message);
+		return LoadMessage(mess.c_str());
+	}
 
 	void ResetScrollPos(void)
 	{
@@ -898,11 +940,7 @@ public:
 
 	int LoadDisplayBuffer()
 	{
-#ifdef _USE_STRING_CB_
-		int BufferLen = ColumnBuffer.length();
-#else
-    int BufferLen = LoadPos;
-#endif    
+		int BufferLen = LoadPos;
 		if (ScrollPos >= BufferLen) ScrollPos = 0;
 
 		unsigned char mask = 0x01;
@@ -920,11 +958,7 @@ public:
 				{
 					dat <<= 1;
 					if (Pos >= BufferLen) Pos = 0;
-#ifdef _USE_STRING_CB_
-					if (mask & ColumnBuffer.charAt(Pos++))
-#else
-          if (mask & ColumnBuffer[Pos++])
-#endif          
+					if (mask & ColumnBuffer[Pos++])
 					{
 						dat += 1;
 					}
@@ -945,7 +979,7 @@ public:
 MAX7219Control lc(SPI_MOSI, SPI_CLK, SPI_CS, numDevices);
 
 const int ledPin = 13;      // the number of the LED pin
-int ledState = LOW;             // ledState used to set the LED
+int ledState = LOW;         // ledState used to set the LED
 
 unsigned long previousMillis = 0;
 const long interval = 100;
