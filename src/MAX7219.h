@@ -125,7 +125,14 @@ public:
 		ScrollPos = 0;
 	}
 
-	void shutdown(int addr, bool b) 
+	static MAX7219Control& GetInstance()
+	{
+		static MAX7219Control* s_instance;
+		if (!s_instance) s_instance = new MAX7219Control(SPI_MOSI, SPI_CLK, SPI_CS, numDevices);
+		return *s_instance;
+	}
+
+	void shutdown(int addr, bool b)
 	{
 		if (addr<0 || addr >= maxDevices)
 			return;
@@ -209,6 +216,7 @@ public:
 
 	void ResetColumnBuffer()
 	{
+		ScrollPos = 0;
 #ifdef _USE_STRING_CB_
 		if (ColumnBuffer) free(ColumnBuffer);
 		ColumnBuffer = NULL;
@@ -326,7 +334,6 @@ public:
 
 /*////////////////////////////////////////////////////////////////////////////////*/
 
-void MAX7219_setup();
-void MAX7219_loop();
+#define LED_Control	(MAX7219Control::GetInstance())
 
 #endif	//#ifndef	_MAX7219_H_
