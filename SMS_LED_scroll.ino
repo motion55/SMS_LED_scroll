@@ -5,6 +5,8 @@
 #include "src/GSM/sms.h"
 SMSGSM sms;
 
+#include "src/MAX7219.h"
+
 //Simple sketch to send and receive SMS.
 
 int numdata;
@@ -15,9 +17,6 @@ char n[20] = "09297895641";	//Replace with your cell number.
 const int RX_pin = 2;
 const int TX_pin = 3;
 const int GSM_ON_pin = 7;
-
-void MAX7219_setup();
-void MAX7219_loop();
 
 void setup()
 {
