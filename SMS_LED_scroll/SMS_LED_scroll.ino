@@ -11,6 +11,7 @@ SMSGSM sms;
 
 void MAX7219_setup();
 void MAX7219_loop();
+void MAX7219_ClearScroll();
 void MAX7219_Update(char* pn, char* message);
 
 /*////////////////////////////////////////////////////////////////////////////////*/
@@ -19,11 +20,11 @@ void MAX7219_Update(char* pn, char* message);
 int numdata;
 boolean started=false;
 char smsbuffer[160] = "Arduino SMS";
-char n[20] = "09291234567";	//Replace with your cell number.
+char n[20] = "09297895641";	//Replace with your cell number.
 
 const int RX_pin = 2;
 const int TX_pin = 3;
-const int GSM_ON_pin = A5;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
+const int GSM_ON_pin = 7;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
 
 void setup()
 {
@@ -31,8 +32,8 @@ void setup()
 	Serial.begin(115200);
 	Serial.println(F("GSM Shield testing."));
 
-  MAX7219_setup();
-  
+	MAX7219_setup();
+	
 	//Configure Comm Port to select Hardware or Software serial
 #if defined(__AVR_ATmega328P__)
 	gsm.SelectSoftwareSerial(RX_pin, TX_pin, GSM_ON_pin);
@@ -82,6 +83,7 @@ void loop()
 				Serial.println(smsbuffer);
 				if ((ret_val == GETSMS_UNREAD_SMS) || (ret_val == GETSMS_READ_SMS))
 				{
+					MAX7219_ClearScroll();
 					if (sms.SendSMS(n,smsbuffer))
 					{
 						Serial.println(F("SMS resent OK"));
@@ -150,6 +152,11 @@ void MAX7219_loop()
 
 		LED_Control.LoadDisplayBuffer();
 	}
+}
+
+void MAX7219_ClearScroll()
+{
+	LED_Control.LoadMessage(" ");
 }
 
 // Update the LED Matrix to display the SMS.
