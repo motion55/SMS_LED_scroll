@@ -20,11 +20,11 @@ void MAX7219_Update(char* pn, char* message);
 int numdata;
 boolean started=false;
 char smsbuffer[160] = "Arduino SMS";
-char n[20] = "09297895641";	//Replace with your cell number.
+char n[20] = "09291234567";	//Replace with your cell number.
 
 const int RX_pin = 2;
 const int TX_pin = 3;
-const int GSM_ON_pin = 7;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
+const int GSM_ON_pin = A5;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
 
 void setup()
 {
