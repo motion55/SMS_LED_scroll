@@ -229,14 +229,15 @@ public:
 		return comm_line_status;
 	};
 	void RxInit(uint16_t start_comm_tmout, uint16_t max_interchar_tmout);
-	byte IsRxFinished(void);
+	byte IsRxFinished(bool NoYield = false);
 	byte IsStringReceived(const char *compare_string);
 	byte IsStringReceived(const __FlashStringHelper *compare_string);
-	byte WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout);
 	byte WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
-			    const char *expected_resp_string);
+			bool NoYield = false);
 	byte WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
-			    const __FlashStringHelper *expected_response);
+			const char *expected_resp_string, bool NoYield = false);
+	byte WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
+			const __FlashStringHelper *expected_response, bool NoYield = false);
 	char SendATCmdWaitResp(char const *AT_cmd_string,
 					   uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
 					   char const *response_string,

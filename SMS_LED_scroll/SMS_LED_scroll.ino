@@ -83,7 +83,7 @@ void loop()
 				Serial.println(smsbuffer);
 				if ((ret_val == GETSMS_UNREAD_SMS) || (ret_val == GETSMS_READ_SMS))
 				{
-					MAX7219_ClearScroll();
+					//MAX7219_ClearScroll();
 					if (sms.SendSMS(n,smsbuffer))
 					{
 						Serial.println(F("SMS resent OK"));

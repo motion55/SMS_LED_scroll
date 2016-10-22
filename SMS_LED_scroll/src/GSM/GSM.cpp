@@ -406,24 +406,25 @@ void GSM::InitParam(byte group)
 
 /**********************************************************/
 
-byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout)
+byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
+	bool NoYield)
 {
 	byte status;
 
 	RxInit(start_comm_tmout, max_interchar_tmout);
 	// wait while response is not finished
 	do {
-		status = IsRxFinished();
+		status = IsRxFinished(NoYield);
 	} while (status == RX_NOT_FINISHED);
 
 	return (status);
 }
 
 byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
-	const char *expected_resp_string)
+	const char *expected_resp_string, bool NoYield)
 {
 	byte ret_val;
-	byte status = WaitResp(start_comm_tmout, max_interchar_tmout);
+	byte status = WaitResp(start_comm_tmout, max_interchar_tmout, NoYield);
 
 	if (status == RX_FINISHED) 
 	{
@@ -450,10 +451,10 @@ byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
 }
 
 byte GSM::WaitResp(uint16_t start_comm_tmout, uint16_t max_interchar_tmout,
-	const __FlashStringHelper *expected_response)
+	const __FlashStringHelper *expected_response, bool NoYield)
 {
 	String expected_resp_string(expected_response);
-	return WaitResp(start_comm_tmout, max_interchar_tmout, expected_resp_string.c_str());
+	return WaitResp(start_comm_tmout, max_interchar_tmout, expected_resp_string.c_str(), NoYield);
 }
 
 
@@ -550,7 +551,7 @@ char GSM::SendATCmdWaitResp(const __FlashStringHelper *AT_cmd,
 	return (ret_val);
 }
 
-byte GSM::IsRxFinished(void)
+byte GSM::IsRxFinished(bool NoYield)
 {
 	byte ret_val = RX_NOT_FINISHED;  // default not finished
 
@@ -602,6 +603,16 @@ byte GSM::IsRxFinished(void)
 					}
 				} while (_cell.available() > 0);
 				prev_time = millis();
+			}
+			else if (!NoYield)
+			{
+				yield();
+				#ifdef ERROR_SERIAL
+				if (_cell.overflow())
+				{
+					ERROR_SERIAL.println(F("Buffer has overflowed"));
+				}
+				#endif
 			}
 		}
 		else
