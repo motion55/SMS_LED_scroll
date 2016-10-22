@@ -129,6 +129,7 @@ void ComPort::flush()
 	if (_SW_Serial != NULL)
 	{
 		_SW_Serial->flush();
+		_SW_Serial->overflow();
 	}
 	else if (_HW_Serial != NULL)
 	{
@@ -136,3 +137,11 @@ void ComPort::flush()
 	}
 }
 
+bool ComPort::overflow()
+{
+	if (_SW_Serial != NULL)
+	{
+		return _SW_Serial->overflow();
+	}
+	return false;
+}

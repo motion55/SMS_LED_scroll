@@ -30,7 +30,7 @@ char SMSGSM::SendSMS(char *number_str, char *message_str)
 	#ifdef ERROR_SERIAL
 	if (strlen(message_str) > 159)
 	{
-		ERROR_SERIAL.println(F("Don't send message longer than 160 characters"));
+		ERROR_SERIAL.println(F("Can't send message longer than 160 characters"));
 	}
 	#endif
 	byte i;
@@ -221,7 +221,7 @@ char SMSGSM::IsSMSPresent(byte required_status)
 			break; // so finish receiving immediately and let's go to
 			// to check response
 		}
-		status = gsm.IsRxFinished();
+		status = gsm.IsRxFinished(true);
 	} while (status == RX_NOT_FINISHED);
 
 	switch (status) {
@@ -319,7 +319,7 @@ char SMSGSM::GetSMS(byte position, char *phone_number, byte max_phone_len, char 
 
 	// 5000 msec. for initial comm tmout
 	// 100 msec. for inter character tmout
-	switch (gsm.WaitResp(5000, 200, F("+CMGR:"))) {
+	switch (gsm.WaitResp(5000, 200, F("+CMGR:"), true)) {
 	case RX_TMOUT_ERR:
 		// response was not received in specific time
 		ret_val = -2;
