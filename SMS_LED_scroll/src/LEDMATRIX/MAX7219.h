@@ -11,9 +11,9 @@
 #endif
 
 const int numDevices = 4;      // number of MAX7219s used
-const int SPI_MOSI = 10;
-const int SPI_CLK = 12;
-const int SPI_CS = 11;
+const int SPI_MOSI = 4;
+const int SPI_CLK = 6;
+const int SPI_CS = 5;
 
 /*////////////////////////////////////////////////////////////////////////////////*/
 

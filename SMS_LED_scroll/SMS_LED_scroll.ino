@@ -24,7 +24,7 @@ char n[20] = "09297895641";	//Replace with your cell number.
 
 const int RX_pin = 2;
 const int TX_pin = 3;
-const int GSM_ON_pin = 7;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
+const int GSM_ON_pin = A3;  //Use pin A5 for eGizmo, 7 for Alexan, 0 for others.
 
 void setup()
 {
@@ -162,9 +162,13 @@ void MAX7219_ClearScroll()
 // Update the LED Matrix to display the SMS.
 void MAX7219_Update(char* pn, char* message)
 {
+#if 0
 	String SMSstr(F(" PN:"));
 	SMSstr += pn;
 	SMSstr += F(" SMS:");
+#else
+	String SMSstr(F("<- -> "));
+#endif
 	SMSstr += message;
 	LED_Control.LoadMessage(SMSstr.c_str());
 }
