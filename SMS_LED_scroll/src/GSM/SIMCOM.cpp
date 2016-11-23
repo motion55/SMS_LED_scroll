@@ -185,7 +185,7 @@ boolean SIMCOM::readSMS(char* msg, int msglength, char* number, int nlength)
 	if(IsStringReceived(F("+CMGL")))
 	{
 		//index
-		p_char = strchr((char *)(GSM::comm_buf.c_str()),'+CMGL');
+		p_char = strchr((char *)(GSM::comm_buf.c_str()),"+CMGL");
 		p_char1 = p_char+3;  //we are on the first char of string
 		p_char = p_char1+1;
 		*p_char = 0;
