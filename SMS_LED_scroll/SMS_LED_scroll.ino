@@ -20,7 +20,7 @@ void MAX7219_Update(char* pn, char* message);
 int numdata;
 boolean started=false;
 char smsbuffer[160] = "Arduino SMS";
-char n[20] = "09297895641";	//Replace with your cell number.
+char n[20] = "09291234567";	//Replace with your cell number.
 
 const int RX_pin = 2;
 const int TX_pin = 3;

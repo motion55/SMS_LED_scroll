@@ -243,7 +243,7 @@ public:
 		return 0;
 	}
 
-	int CheckMessage(unsigned char * message)
+	int CheckMessage(const char *message)
 	{
 		int EndPos = LoadPos;
 		for (int counter = 0; ; counter++)
@@ -263,7 +263,7 @@ public:
 	}
 #endif
 
-	int LoadMessage(unsigned char *message)
+	int LoadMessage(const char *message)
 	{
 		ResetColumnBuffer();
 #ifdef _USE_STRING_CB_
