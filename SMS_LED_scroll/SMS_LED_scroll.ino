@@ -1,9 +1,11 @@
 
-#include "src/GSM/SIMCOM.h"
+//#include "src/GSM/SIMCOM.h"
 
 //If you want to use the Arduino functions to manage SMS, uncomment the lines below.
+#ifdef GSM_H
 #include "src/GSM/sms.h"
 SMSGSM sms;
+#endif
 
 #include "src/LEDMATRIX/MAX7219.h"
 
@@ -34,6 +36,7 @@ void setup()
 
 	MAX7219_setup();
 	
+#ifdef GSM_H
 	//Configure Comm Port to select Hardware or Software serial
 #if defined(__AVR_ATmega328P__)
 	gsm.SelectSoftwareSerial(RX_pin, TX_pin, GSM_ON_pin);
@@ -54,11 +57,13 @@ void setup()
 		if (sms.SendSMS(n,smsbuffer))
 			Serial.println(F("\nSMS sent OK"));
 	}
+#endif
 };
 
 void loop()
 {
-	if(started) 
+#ifdef GSM_H
+	if(started)
 	{
 		int pos=sms.IsSMSPresent(SMS_ALL);
 		if(pos>0&&pos<=20)
@@ -94,6 +99,7 @@ void loop()
 			}
 		}
 	}
+#endif
 	delay(1000);
 };
 

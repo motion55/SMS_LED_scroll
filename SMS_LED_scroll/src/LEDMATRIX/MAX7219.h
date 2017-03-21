@@ -8,12 +8,20 @@
 #include <pgmspace.h>
 #else
 #include <avr/pgmspace.h>
+#include "SPI.h"
 #endif
 
 const int numDevices = 4;      // number of MAX7219s used
+
+#ifdef __AVR_ATmega2560__
+const int SPI_MOSI = PIN_SPI_MOSI;
+const int SPI_CLK = PIN_SPI_SCK;
+const int SPI_CS = PIN_SPI_SS;
+#else
 const int SPI_MOSI = 4;
 const int SPI_CLK = 6;
 const int SPI_CS = 5;
+#endif
 
 /*////////////////////////////////////////////////////////////////////////////////*/
 
@@ -60,7 +68,11 @@ private:
 		//Now shift out the data 
 		for (int i = maxbytes; i > 0; i--)
 		{
+#ifdef _SPI_H_INCLUDED
+			SPI.transfer(spidata[i - 1]);
+#else
 			shiftOut(_SPI_MOSI, _SPI_CLK, MSBFIRST, spidata[i - 1]);
+#endif
 		}
 		//latch the data onto the display
 		digitalWrite(_SPI_CS, HIGH);
@@ -100,12 +112,16 @@ public:
 		if (numDevices <= 0 || numDevices > 8)
 			numDevices = 8;
 		maxDevices = numDevices;
+#ifdef _SPI_H_INCLUDED
+		SPI.begin();
+#else
 		pinMode(_SPI_MOSI, OUTPUT);
 		pinMode(_SPI_CLK, OUTPUT);
 		pinMode(_SPI_CS, OUTPUT);
 		digitalWrite(_SPI_CS, HIGH);
-		pinMode(10, OUTPUT);
-		digitalWrite(10, HIGH); //To enusre SS pin is HIGH
+#endif
+		//pinMode(PIN_SPI_SS, OUTPUT);
+		//digitalWrite(PIN_SPI_SS, HIGH); //To enusre SS pin is HIGH
 		for (int i = 0; i < maxDevices; i++) 
 		{
 			spiTransfer(i, OP_DISPLAYTEST, 0);
