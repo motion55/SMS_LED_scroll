@@ -19,7 +19,9 @@ ComPort.h (formerly NewSoftSerial.h) -
 class ComPort : public Stream
 {
 private:
+#ifndef __arm__
 	SoftwareSerial* _SW_Serial;
+#endif	
 	HardwareSerial* _HW_Serial;
 
 public:
@@ -28,7 +30,9 @@ public:
   ~ComPort();
 
   void SelectHardwareSerial(HardwareSerial *HW_Serial);
+#ifndef __arm__
   void SelectSoftwareSerial(uint8_t receivePin, uint8_t transmitPin);
+#endif	
   int peek();
   void begin(long speed);
   virtual size_t write(uint8_t dat);

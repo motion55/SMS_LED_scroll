@@ -8,8 +8,10 @@ ComPort.cpp
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <Arduino.h>
+#ifndef __arm__
 #include <SoftwareSerial.h>
 #include <util/delay_basic.h>
+#endif
 #include "ComPort.h"
 
 //
@@ -18,7 +20,9 @@ ComPort.cpp
 
 ComPort::ComPort()
 {
+#ifndef __arm__
 	_SW_Serial = NULL;
+#endif
 	_HW_Serial = NULL;
 }
 
@@ -27,11 +31,13 @@ ComPort::ComPort()
 //
 ComPort::~ComPort()
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		delete _SW_Serial;
 		_SW_Serial = NULL;
 	}
+#endif
 }
 
 int ComPort::peek()
@@ -46,14 +52,16 @@ int ComPort::peek()
 void ComPort::SelectHardwareSerial(HardwareSerial* HW_Serial)
 {
 	if (HW_Serial!=NULL) _HW_Serial = HW_Serial;
-
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		delete _SW_Serial;
 		_SW_Serial = NULL;
 	}
+#endif
 }
 
+#ifndef __arm__
 void ComPort::SelectSoftwareSerial(uint8_t receivePin, uint8_t transmitPin)
 {
 	if (_SW_Serial == NULL)
@@ -61,9 +69,11 @@ void ComPort::SelectSoftwareSerial(uint8_t receivePin, uint8_t transmitPin)
 		_SW_Serial = new SoftwareSerial(receivePin, transmitPin);
 	}
 }
+#endif	
 
 void ComPort::begin(long speed)
 {
+#ifndef __arm__
 	if ((_SW_Serial == NULL) && (_HW_Serial == NULL))
 	{
 		SelectSoftwareSerial(_COMPORT_SS_RXPIN_, _COMPORT_SS_TXPIN_);
@@ -78,7 +88,9 @@ void ComPort::begin(long speed)
 	{
 		_SW_Serial->begin(speed);
 	}
-	else if (_HW_Serial != NULL)
+	else
+#endif	
+	if (_HW_Serial != NULL)
 	{
 		_HW_Serial->begin(speed);
 	}
@@ -87,11 +99,14 @@ void ComPort::begin(long speed)
 
 size_t ComPort::write(uint8_t dat)
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		return _SW_Serial->write(dat);
 	}
-	else if (_HW_Serial != NULL)
+	else
+#endif	
+	if (_HW_Serial != NULL)
 	{
 		return _HW_Serial->write(dat);
 	}
@@ -100,11 +115,14 @@ size_t ComPort::write(uint8_t dat)
 
 int ComPort::read()
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		return _SW_Serial->read();
 	}
-	else if (_HW_Serial != NULL)
+	else
+#endif	
+	if (_HW_Serial != NULL)
 	{
 		return _HW_Serial->read();
 	}
@@ -113,11 +131,14 @@ int ComPort::read()
 
 int ComPort::available()
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		return _SW_Serial->available();
 	}
-	else if (_HW_Serial != NULL)
+	else
+#endif	
+	if (_HW_Serial != NULL)
 	{
 		return _HW_Serial->available();
 	}
@@ -126,12 +147,15 @@ int ComPort::available()
 
 void ComPort::flush()
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		_SW_Serial->flush();
 		_SW_Serial->overflow();
 	}
-	else if (_HW_Serial != NULL)
+	else
+#endif	
+	if (_HW_Serial != NULL)
 	{
 		_HW_Serial->flush();
 	}
@@ -139,9 +163,11 @@ void ComPort::flush()
 
 bool ComPort::overflow()
 {
+#ifndef __arm__
 	if (_SW_Serial != NULL)
 	{
 		return _SW_Serial->overflow();
 	}
+#endif	
 	return false;
 }

@@ -2,7 +2,9 @@
 #define GSM_H
 
 #include <Arduino.h>
+#ifndef __arm__
 #include <SoftwareSerial.h>
+#endif
 #include <inttypes.h>
 //#include "WideTextFinder.h"
 
@@ -186,6 +188,7 @@ public:
 		_GSM_ON = GSM_ON_pin;
 		_GSM_RESET = GSM_RESET_pin;
 	}
+#ifndef __arm__
 	inline void SelectSoftwareSerial(uint8_t receivePin, uint8_t transmitPin,
 		int GSM_ON_pin = GSM_ON, int GSM_RESET_pin = 0)
 	{
@@ -193,6 +196,7 @@ public:
 		_GSM_ON = GSM_ON_pin;
 		_GSM_RESET = GSM_RESET_pin;
 	}
+#endif
 	ComPort	_cell;
 
 public:
